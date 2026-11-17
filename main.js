@@ -1,9 +1,10 @@
 // Новогоднее письмо по ссылке: экран телефона целиком обёрнут бумагой, адресат рвёт её пальцем, под ней листок с личной цифрой года, посланием и подарком.
 //   ?c=<код>     письмо адресата из cards/<код>.json; в нём поле set называет набор компании
-//   ?set=<имя>   набор sets/<имя>.json: знак и краски компании, письмо для показа; без кода и набора открывается receipt, «Чек года»
+//   ?set=<имя>   набор sets/<имя>.json: знак, краски и язык компании, письмо для показа; без кода и набора открывается набор,
+//                названный страницей в <html data-set="…">, а если его нет, receipt, «Чек года»
 //   ?manual=1    время идёт только по команде window.__card.run(сек): так снимает dev/cap.mjs
 import * as THREE from 'three';
-import { W, H, BRAND, CARD, loadFonts, drawWrap, drawTicket, drawReceipt, drawFiber } from './art.js';
+import { W, H, BRAND, CARD, LANG, loadFonts, drawWrap, drawTicket, drawReceipt, drawFiber } from './art.js';
 import { Tear, makeMaterials, makeShareMaterial } from './tear.js';
 import { GiftAudio } from './audio.js';
 
@@ -25,11 +26,19 @@ const hex = (h) => { const n = parseInt(h.slice(1), 16); return new THREE.Vector
 const tex = (c, mip = true) => { const t = new THREE.CanvasTexture(c); t.generateMipmaps = mip; t.minFilter = mip ? THREE.LinearMipmapLinearFilter : THREE.LinearFilter; t.anisotropy = 4; return t; };
 
 const clean = (s, d) => (s || '').replace(/[^a-z0-9_-]/gi, '').slice(0, 40) || d;
-const getJSON = async (u) => { try { const r = await fetch(u, { cache: 'no-store' }); return r.ok ? await r.json() : null; } catch { return null; } };
+// Сеть на телефоне может моргнуть: файл спрашивается до трёх раз. Ответ «такого файла нет» принимается сразу.
+const getJSON = async (u) => {
+  for (let i = 0; i < 3; i++) {
+    try { const r = await fetch(u, { cache: 'no-store' }); if (r.ok) return await r.json(); if (r.status < 500) return null; } catch {}
+    if (i < 2) await new Promise((res) => setTimeout(res, 400 * (i + 1)));
+  }
+  return null;
+};
 const cid = clean(qs.get('c'), ''), cardFile = cid ? await getJSON('cards/' + cid + '.json') : null;
-const sid = clean(qs.get('set') || (cardFile && cardFile.set), 'receipt'), set = (await getJSON('sets/' + sid + '.json')) || {};
-const brand = { ...BRAND, ...(set.brand || {}) };
-const card = { ...CARD, ...(set.card || {}), ...(cardFile || {}) };
+const sid = clean(qs.get('set') || (cardFile && cardFile.set), clean(document.documentElement.dataset.set, 'receipt')), set = (await getJSON('sets/' + sid + '.json')) || {};
+const brand = { ...BRAND, ...(set.brand || {}) }, T = LANG[brand.lang] || LANG.ru;      // язык письма называет набор: brand.lang
+const card = { ...CARD, ...(T.card || {}), ...(set.card || {}), ...(cardFile || {}) };
+document.documentElement.lang = LANG[brand.lang] ? brand.lang : 'ru';
 // ?demo: страница для компаний подставляет своего адресата и цифру. У писем настоящего заказчика это выключено (demo: false в наборе), там только коды.
 if (qs.has('demo') && brand.demo !== false) {
   const g = (k, n) => (qs.get(k) || '').replace(/[<>]/g, '').trim().slice(0, n), dm = set.demo || {};
@@ -41,8 +50,9 @@ if (qs.has('demo') && brand.demo !== false) {
   }
   if (g('place', 28)) card.place = g('place', 28).toUpperCase();
 }
-document.title = brand.name[0] + brand.name.slice(1).toLowerCase() + ': ' + card.big.join(' ').toLowerCase().replace(/^с/, 'С');
-await loadFonts();
+const cap = (s) => s.slice(0, 1).toUpperCase() + s.slice(1).toLowerCase();
+document.title = cap(brand.name) + ': ' + cap(card.big.join(' '));
+await loadFonts(JSON.stringify([brand, card]) + Object.values(T).filter((v) => typeof v === 'string').join(' '));
 // Широкое окно компьютера: слева крупно, кому письмо. Поле и надпись берут две краски компании: тёмная идёт на поле, вторая на надпись, если она на нём читается.
 {
   const lum = (h) => { const n = parseInt(h.slice(1), 16), c = [n >> 16 & 255, n >> 8 & 255, n & 255].map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
@@ -51,8 +61,8 @@ await loadFonts();
   rs.setProperty('--bg', bg); rs.setProperty('--fg', brand.paperLabel); rs.setProperty('--acc', contrast(other, bg) >= 3 ? other : brand.paperWrap);
   document.querySelector('meta[name="theme-color"]').content = bg;
   const side = document.getElementById('side'), h = document.getElementById('sideH');
-  for (const [t, cls] of [[card.to + ',', 'n'], ['с Новым', ''], ['годом!', '']]) { const s = document.createElement('span'); s.textContent = t; if (cls) s.className = cls; h.appendChild(s); }
-  document.getElementById('sideP').textContent = `От ${card.from}. Бумага рвётся мышью, на телефоне пальцем.`;
+  for (const [t, cls] of T.side(card.to)) { const s = document.createElement('span'); s.textContent = t; if (cls) s.className = cls; h.appendChild(s); }
+  document.getElementById('sideP').textContent = T.sideP(card.from);
   const fitSide = () => {                                  // длинное имя не должно заходить под письмо
     h.style.fontSize = ''; if (getComputedStyle(side).display === 'none') return;
     const avail = stage.getBoundingClientRect().left - side.getBoundingClientRect().left - innerWidth * 0.03, w = h.scrollWidth;
@@ -175,9 +185,9 @@ function tap(x, y) {
     audio.tap(0.45); window.__card && (window.__card.tapped = k);
     if (act[k] === 'reload') location.reload();
     else if (act[k] === 'copy') copyText(card.copy).then((ok) => { window.__card && (window.__card.copied = ok);
-      relabel({ btnB: ok ? 'КОД СКОПИРОВАН' : 'ВЫДЕЛИТЕ КОД ВЫШЕ' }); clearTimeout(relabelT); relabelT = setTimeout(() => relabel({}), 2200); });
+      relabel({ btnB: ok ? T.copied : T.select }); clearTimeout(relabelT); relabelT = setTimeout(() => relabel({}), 2200); });
     else if (act[k] === 'save') saveReceipt().then((r) => { window.__card && (window.__card.saved = r);
-      if (r === 'ok') { relabel({ btnS: 'ЧЕК СОХРАНЁН' }); clearTimeout(relabelT); relabelT = setTimeout(() => relabel({}), 2200); } });
+      if (r === 'ok') { relabel({ btnS: T.saved }); clearTimeout(relabelT); relabelT = setTimeout(() => relabel({}), 2200); } });
     else if (act[k]) window.open(act[k], '_blank', 'noopener');
     return;
   }
@@ -216,11 +226,11 @@ function renderShare() {
 function makeShare() {
   if (shareS.busy || shareS.file) return; shareS.busy = true;
   renderShare().toBlob((bl) => { shareS.busy = false; if (!bl) return;
-    shareS.file = new File([bl], `chek-${(String(card.title || '').match(/\d{4}/) || ['2026'])[0]}.png`, { type: 'image/png' }); shareS.url = URL.createObjectURL(bl); }, 'image/png');
+    shareS.file = new File([bl], `${T.file}-${(String(card.title || '').match(/\d{4}/) || ['2026'])[0]}.png`, { type: 'image/png' }); shareS.url = URL.createObjectURL(bl); }, 'image/png');
 }
 function showShare() {                                      // запасной путь: картинка на экране, сохраняется долгим нажатием
-  const o = document.createElement('div'), im = new Image(), p = document.createElement('p'); o.id = 'keep'; im.src = shareS.url; im.alt = 'Чек';
-  p.textContent = 'Чтобы сохранить, нажмите на картинку и держите. Чтобы вернуться, коснитесь поля рядом.';
+  const o = document.createElement('div'), im = new Image(), p = document.createElement('p'); o.id = 'keep'; im.src = shareS.url; im.alt = T.keepAlt;
+  p.textContent = T.keep;
   o.append(im, p); o.addEventListener('click', (e) => { if (e.target !== im) o.remove(); }); document.body.appendChild(o); return 'shown';
 }
 async function saveReceipt() {

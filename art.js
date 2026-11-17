@@ -28,9 +28,37 @@ export const CARD = {
   btnA: '', btnB: 'СКОПИРОВАТЬ КОД', btnS: 'СОХРАНИТЬ ЧЕК', footL: '', footR: 'ОТКРЫТЬ ЗАНОВО',
 };
 
-export async function loadFonts() {
+// Язык письма. Здесь надписи, которые печатает сама страница, и поля письма, одинаковые для всех компаний на этом языке.
+// Набор выбирает язык полем brand.lang; без него письмо русское.
+//   card   перекрывает CARD до набора: обёртка, подсказка на наклейке, кнопки
+//   side   заголовок слева на широком окне: строки по порядку, пометка n стоит у строки с именем
+export const LANG = {
+  ru: {
+    to: 'КОМУ', from: 'ОТ', series: 'ИТОГИ ГОДА № ', no: '№ ', byHand: 'ОТ РУКИ', seal: 'СПАСИБО ЗА ГОД',
+    side: (to) => [[to + ',', 'n'], ['с Новым', ''], ['годом!', '']], sideP: (from) => `От ${from}. Бумага рвётся мышью, на телефоне пальцем.`,
+    copied: 'КОД СКОПИРОВАН', select: 'ВЫДЕЛИТЕ КОД ВЫШЕ', saved: 'ЧЕК СОХРАНЁН', file: 'chek', keepAlt: 'Чек',
+    keep: 'Чтобы сохранить, нажмите на картинку и держите. Чтобы вернуться, коснитесь поля рядом.',
+  },
+  en: {
+    to: 'TO', from: 'FROM', series: 'YEAR IN REVIEW NO. ', no: 'NO. ', byHand: 'BY HAND', seal: 'THANK YOU',
+    side: (to) => [[to + ',', 'n'], ['happy', ''], ['New Year!', '']], sideP: (from) => `From ${from}. Tear the paper with your mouse, or with a finger on a phone.`,
+    copied: 'CODE COPIED', select: 'SELECT THE CODE ABOVE', saved: 'RECEIPT SAVED', file: 'receipt', keepAlt: 'Receipt',
+    keep: 'Press and hold the picture to save it. Tap outside the picture to go back.',
+    card: {
+      big: ['HAPPY', '2027'], to: 'You', from: 'the team', date: '31 DEC', hint: 'TEAR WITH YOUR FINGER',
+      kicker: '2026 IN REVIEW', label: 'YOUR 2026 WITH US', place: 'BARISTA, 4 FOREST ST',
+      amount: '9,412 CUPS', words: '38 PER SHIFT. A SHOP RECORD', box: 'THANK YOU',
+      msg: ['Thank you for this year.', 'Happy New Year!'], sign: '',
+      giftLabel: 'A GIFT FROM THE TEAM: $50 GIFT CARD', until: 'UNTIL 31 MAR 2027',
+      btnB: 'COPY THE CODE', btnS: 'SAVE THE RECEIPT', footR: 'OPEN AGAIN',
+    },
+  },
+};
+
+// text: всё, что будет напечатано. Шрифты приходят кусками по письменности, грузятся только нужные этому письму.
+export async function loadFonts(text = '') {
   const need = [`900 80px ${BIG}`, `500 12px ${MONO}`, `600 12px ${MONO}`, `600 40px ${HAND}`, `16px "DotGothic16"`];
-  await Promise.all(need.map((f) => document.fonts.load(f, 'С НОВЫМ 2027 ТРЕСК тресканя «»№·')));
+  await Promise.all(need.map((f) => document.fonts.load(f, text + ' 0123456789 ·')));
 }
 
 const mk = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return [c, c.getContext('2d')]; };
@@ -91,10 +119,13 @@ function crease(a, x0, y0, x1, y1, ridge, k = 1) {
 }
 
 export function drawWrap(d = CARD, b = BRAND) {
-  const [c, g] = mk(W * S, H * S), [ca, a] = mk(W * S, H * S);
+  const [c, g] = mk(W * S, H * S), [ca, a] = mk(W * S, H * S), T = LANG[b.lang] || LANG.ru;
   g.fillStyle = '#000'; g.fillRect(0, 0, c.width, c.height);
   a.fillStyle = 'rgb(0,128,0)'; a.fillRect(0, 0, c.width, c.height);
   const rot = -6 * Math.PI / 180;
+  // наклейка с адресом и календарный штемпель на её углу; pm это середина штемпеля в повёрнутых координатах узора
+  const lw = 240, lh = 130, lx = 176, ly = 22, lrot = 2.4 * Math.PI / 180, sx = lx - 24, sy = ly + lh - 12;
+  const pm = { x: W / 2 + (sx - W / 2) * Math.cos(rot) + (sy - H / 2) * Math.sin(rot), y: H / 2 - (sx - W / 2) * Math.sin(rot) + (sy - H / 2) * Math.cos(rot) };
   for (const q of [g, a]) { q.save(); q.scale(S, S); q.translate(W / 2, H / 2); q.rotate(rot); q.translate(-W / 2, -H / 2); }
 
   // крупный набор повтором вниз, как на рулонной бумаге: поздравление и год, под поздравлением бегущая строка, под годом полоса снежинок
@@ -112,7 +143,10 @@ export function drawWrap(d = CARD, b = BRAND) {
         let t = b.micro; g.font = `600 7.2px ${MONO}`; g.letterSpacing = '1.5px'; while (g.measureText(t).width < ww + 300) t += b.micro;
         g.fillText(t, x0 - 80 - ((k * 53 + 400) % 120), yb + 0.5); g.letterSpacing = '0px'; g.textBaseline = 'alphabetic';
       } else {
-        for (let j = 0, xi = x0 - 34 + ((k * 23 + 60) % 44); xi < W + 40; j++, xi += 44) flake(g, xi, yb, (j + k) & 1 ? 7.6 : 9, ch2, 0.18 * ((j * 3 + k) % 4), b.flake);
+        for (let j = 0, xi = x0 - 34 + ((k * 23 + 60) % 44); xi < W + 40; j++, xi += 44) {
+          if (Math.hypot(xi - pm.x, yb - pm.y) < 31) continue;          // под штемпелем узор пропущен: снежинка той же краски ложилась прямо на дату
+          flake(g, xi, yb, (j + k) & 1 ? 7.6 : 9, ch2, 0.18 * ((j * 3 + k) % 4), b.flake);
+        }
       }
       y += m[i].asc + gap;
     });
@@ -122,17 +156,16 @@ export function drawWrap(d = CARD, b = BRAND) {
   g.restore(); a.restore();
 
   // наклейка с адресом: белая бумага поверх обёртки, своя печать и надписи от руки
-  const lw = 240, lh = 130, lx = 176, ly = 22, lrot = 2.4 * Math.PI / 180;
   for (const q of [g, a]) { q.save(); q.scale(S, S); q.translate(lx + lw / 2, ly + lh / 2); q.rotate(lrot); q.translate(-lw / 2, -lh / 2); }
   a.globalCompositeOperation = 'lighter'; a.shadowColor = 'rgb(0,0,255)'; a.shadowBlur = 7 * S; a.shadowOffsetX = 2.2 * S; a.shadowOffsetY = 3.2 * S;
   a.fillStyle = 'rgb(255,0,255)'; a.fillRect(0, 0, lw, lh); a.shadowColor = 'transparent';
   a.globalCompositeOperation = 'source-over'; a.fillStyle = 'rgb(255,128,255)'; a.fillRect(0, 0, lw, lh);      // под наклейкой заломы не видны
   g.globalCompositeOperation = 'source-over'; g.fillStyle = '#000'; g.fillRect(0, 0, lw, lh);
   ink(g, 0); g.font = `900 36px ${BIG}`; g.textBaseline = 'alphabetic'; g.fillText(b.name, 13, 37);
-  ink(g, 1); mono(g, b.sub, lw - 13, 20, 6.3, 1.3, 600, 'right'); mono(g, 'ИТОГИ ГОДА № ' + d.no, lw - 13, 31, 6.3, 1.3, 500, 'right');
+  ink(g, 1); mono(g, b.sub, lw - 13, 20, 6.3, 1.3, 600, 'right'); mono(g, T.series + d.no, lw - 13, 31, 6.3, 1.3, 500, 'right');
   g.fillRect(13, 45, lw - 26, 1.1);
-  mono(g, 'КОМУ', 13, 73, 6.3, 1.3, 600); g.fillRect(52, 79.5, lw - 65, 0.6);
-  mono(g, 'ОТ', 13, 106, 6.3, 1.3, 600); g.fillRect(52, 112.5, lw - 65, 0.6);
+  mono(g, T.to, 13, 73, 6.3, 1.3, 600); g.fillRect(52, 79.5, lw - 65, 0.6);
+  mono(g, T.from, 13, 106, 6.3, 1.3, 600); g.fillRect(52, 112.5, lw - 65, 0.6);
   mono(g, d.hint, lw - 34, lh - 6.5, 5.6, 1.5, 600, 'right');
   g.beginPath(); const ax = lw - 30; g.moveTo(ax + 6, lh - 13); g.lineTo(ax + 6, lh - 4.5); g.lineTo(ax + 3.2, lh - 8); g.moveTo(ax + 6, lh - 4.5); g.lineTo(ax + 8.8, lh - 8); g.lineWidth = 0.9; g.stroke();
   ink(g, 2);
@@ -140,8 +173,8 @@ export function drawWrap(d = CARD, b = BRAND) {
   handLine(d.to, 62, 77, -0.035, 42); handLine(d.from, 60, 110, -0.02, 36);
   g.restore(); a.restore();
 
-  // календарный штемпель: ложится и на бумагу, и на угол наклейки
-  g.save(); g.scale(S, S); const sx = lx - 2, sy = ly + lh - 12; g.translate(sx, sy); g.rotate(-0.21); ink(g, 1);
+  // календарный штемпель: ложится на бумагу и краем на угол наклейки, подпись «ОТ» остаётся рядом с его кольцом
+  g.save(); g.scale(S, S); g.translate(sx, sy); g.rotate(-0.21); ink(g, 1);
   g.lineWidth = 1.5; g.beginPath(); g.arc(0, 0, 37, 0, 7); g.stroke(); g.lineWidth = 0.8; g.beginPath(); g.arc(0, 0, 25, 0, 7); g.stroke();
   g.textBaseline = 'middle'; arcText(g, b.name + ' · ' + b.sub, 0, 0, 31, -Math.PI / 2, 6.2, 1.6); arcText(g, d.big.join(' '), 0, 0, 31, Math.PI / 2, 6.2, 1.6, false);
   g.font = `600 9.5px ${MONO}`; g.textAlign = 'center'; g.fillText(d.date, 0, 0.5); g.textAlign = 'left';
@@ -151,18 +184,18 @@ export function drawWrap(d = CARD, b = BRAND) {
 }
 
 export function drawTicket(d = CARD, b = BRAND) {
-  const [c, g] = mk(W * S, H * S), [c2, g2] = mk(W * S, H * S);
+  const [c, g] = mk(W * S, H * S), [c2, g2] = mk(W * S, H * S), T = LANG[b.lang] || LANG.ru;
   for (const q of [g, g2]) { q.fillStyle = '#000'; q.fillRect(0, 0, c.width, c.height); q.save(); q.scale(S, S); q.textBaseline = 'alphabetic'; }
   const mx = 26, R = W - mx, ix = 104, iR = W - 104;               // поля листа и поля колонки, которую открывают первые два рывка
   // всё нужное собрано в полосе 200–660: её открывают первые рывки от середины
   const Y = { head: 90, lab: 206, cy: 290, from: 386, l0: 446, l1: 490, l2: 534, gift: 556, btn: 612, foot: 676, flakes: 720 };
   // шапка
   ink(g, 0); g.font = `900 58px ${BIG}`; g.fillText(b.name, mx - 2, 76);
-  ink(g, 1); mono(g, b.sub, R, 52, 6.8, 1.5, 600, 'right'); mono(g, d.kicker, R, 64, 6.8, 1.5, 500, 'right', 200); mono(g, '№ ' + d.no + ' / 26', R, 76, 6.8, 1.5, 500, 'right');
+  ink(g, 1); mono(g, b.sub, R, 52, 6.8, 1.5, 600, 'right'); mono(g, d.kicker, R, 64, 6.8, 1.5, 500, 'right', 200); mono(g, T.no + d.no + ' / 26', R, 76, 6.8, 1.5, 500, 'right');
   g.fillRect(mx, Y.head, R - mx, 1.5);
   // поле цифры года, подписи внутри колонки
   g.fillRect(mx, Y.lab, R - mx, 0.9); mono(g, d.label, ix, Y.lab + 17, 6.8, 1.5, 600, 'left', 100); mono(g, d.place, iR, Y.lab + 17, 6.8, 1.5, 500, 'right', 106);
-  g.fillRect(mx, Y.from, R - mx, 0.9); mono(g, 'ОТ РУКИ', 58, Y.from + 17, 6.8, 1.5, 600);
+  g.fillRect(mx, Y.from, R - mx, 0.9); mono(g, T.byHand, 58, Y.from + 17, 6.8, 1.5, 600);
   g.globalAlpha = 0.5; for (const y of [Y.l0 + 4, Y.l1 + 4, Y.l2 + 4]) for (let x = mx; x < R; x += 4) g.fillRect(x, y, 1.6, 0.7); g.globalAlpha = 1;
   // подарок и кнопки стоят с полями пошире: по краям листка лежат свёрнутые лоскуты обёртки и закрывают первые 30–40 px
   const bx = 48, bR = W - 48;
@@ -198,7 +231,7 @@ export function drawTicket(d = CARD, b = BRAND) {
   g2.globalCompositeOperation = 'lighter'; g2.fillStyle = '#00ff00';
   const hand = (t, x, y, r, size, maxW) => { g2.font = `600 ${size}px ${HAND}`; let w = g2.measureText(t).width;    // строки уже колонки, чтобы не уходить под край дыры
     if (w > maxW) { size *= maxW / w; g2.font = `600 ${size}px ${HAND}`; w = maxW; }
-    g2.save(); g2.translate(x, y); g2.rotate(r); g2.fillText(t, 0, 0); g2.restore(); return x + w * Math.cos(r); };
+    g2.save(); g2.translate(x, y); g2.rotate(r); g2.fillText(t, 0, 0); g2.restore(); return x + Math.max(w, g2.measureText(t).actualBoundingBoxRight) * Math.cos(r); };   // конец строки по краске: у наклонного почерка последняя буква выходит за свою ширину
   const e0 = hand(d.msg[0] || '', 60, Y.l0, -0.028, 40, 296), e1 = hand(d.msg[1] || '', 66, Y.l1, -0.02, 40, 290), s0 = 232, e2 = hand(d.sign || '', s0, Y.l2, -0.06, 46, 140);
   for (const q of [g, g2]) q.restore();
   const box = (a) => ({ x: a[0], y: a[1], w: a[2], h: a[3] });
@@ -271,7 +304,10 @@ export function drawReceipt(d = CARD, b = BRAND, o = {}) {
   rule('=', yLast + 11);
   // итог: слева подпись, крупное число и две строки пояснения; справа место под круглую печать
   cells(g, up(d.totalLabel).slice(0, 13), L, sy - 38);
-  const amt = String(d.amount), ap = Math.min(23, 124 / Math.max(1, amt.length)); cells(g, amt, L, sy + 4, 38 * ap / 23, ap, 1.1 * ap / 23);
+  // крупное число итога: запятая и точка занимают полклетки, иначе «9,412» разваливается на «9, 412»
+  const amt = String(d.amount), sepW = (ch) => (ch === ',' || ch === '.' ? 0.5 : 1), ap = Math.min(23, 124 / Math.max(1, [...amt].reduce((n, ch) => n + sepW(ch), 0)));
+  { g.font = (38 * ap / 23) + 'px ' + RF; g.textAlign = 'center'; g.lineWidth = 1.1 * ap / 23; g.lineJoin = 'round'; let x = L;
+    for (const ch of amt) { if (ch !== ' ') { g.fillText(ch, x + ap / 2, sy + 4); g.strokeText(ch, x + ap / 2, sy + 4); } x += ap * sepW(ch); } g.textAlign = 'left'; }
   (Array.isArray(d.words) ? d.words : wrap(String(d.words || ''), 14)).slice(0, 2).forEach((t, i) => cells(g, up(t).slice(0, 14), L, sy + 26 + i * 13.5)); rule('-', sy + 70);
   rule('-', sy + 180);
   const wB = x1 - x0 - 26, btn = [L, sy + 262, wB, 27], sav = [L, sy + 295, wB, 27];
@@ -289,7 +325,7 @@ export function drawReceipt(d = CARD, b = BRAND, o = {}) {
   }
 
   // первый удар: круглая печать красным справа от итога. Второй: прямоугольный штамп «оплачено» второй краской, справа от кассира и гостя
-  const seal = d.seal || ['СПАСИБО ЗА ГОД', b.name + ' · 2026'];
+  const seal = d.seal || [(LANG[b.lang] || LANG.ru).seal, b.name + ' · 2026'];
   g.save(); g.translate(sx, sy); g.rotate(-0.09); ink(g, 2);
   g.lineWidth = 3; g.beginPath(); g.arc(0, 0, R, 0, 7); g.stroke(); g.lineWidth = 1.1; g.beginPath(); g.arc(0, 0, R - 4.6, 0, 7); g.stroke(); g.beginPath(); g.arc(0, 0, R - 18, 0, 7); g.stroke();
   g.textBaseline = 'middle'; arcText(g, up(seal[0]), 0, 0, R - 11.2, -Math.PI / 2, 9.4, 1.9); arcText(g, up(seal[1]), 0, 0, R - 11.2, Math.PI / 2, 9.4, 1.9, false);
@@ -302,7 +338,7 @@ export function drawReceipt(d = CARD, b = BRAND, o = {}) {
   // слова ручкой прямо по чеку
   g2.globalCompositeOperation = 'lighter'; g2.fillStyle = '#00ff00'; g2.textBaseline = 'alphabetic';
   const hand = (t, x, y, r, size, maxW) => { g2.font = '600 ' + size + 'px ' + HAND; let w = g2.measureText(t).width; if (w > maxW) { size *= maxW / w; g2.font = '600 ' + size + 'px ' + HAND; w = maxW; }
-    g2.save(); g2.translate(x, y); g2.rotate(r); g2.fillText(t, 0, 0); g2.restore(); return x + w * Math.cos(r); };
+    g2.save(); g2.translate(x, y); g2.rotate(r); g2.fillText(t, 0, 0); g2.restore(); return x + Math.max(w, g2.measureText(t).actualBoundingBoxRight) * Math.cos(r); };   // конец строки по краске: у наклонного почерка последняя буква выходит за свою ширину
   const e0 = hand(d.msg[0] || '', 96, hy[0], -0.03, 30, 246), e1 = hand(d.msg[1] || '', 99, hy[1], -0.022, 30, 242), s0 = 246, e2 = hand(d.sign || '', s0, hy[2], -0.06, 34, 92);
   for (const q of [g, g2, g3]) q.restore();
   const box = (a) => ({ x: a[0], y: a[1], w: a[2], h: a[3] });

@@ -75,9 +75,13 @@ vec3 wrapBack(vec2 uv, vec2 px) {
   c *= mix(vec3(1.), uInk1, pl.r * .06); c *= mix(vec3(1.), uInk2, pl.g * .12);
   return c;
 }
-float handK(vec2 px) { float sy = uSize.y - px.y, ln = sy < uHandY.x + 14. ? 0. : sy < uHandY.y + 14. ? 1. : 2.;
+// Строки послания стоят тесно и поднимаются вправо, у чека ещё и лента лежит с наклоном. Граница между строками идёт с тем же наклоном
+// на 0,31 шага ниже базовой линии: выносные верхней строки и верхушки букв нижней остаются каждая в своей строке.
+// Когда послание дописано (uHand = 3), маска снята совсем, хвост последней буквы не срезается.
+float handK(vec2 px) { float sy = uSize.y - px.y, gap = (uHandY.y - uHandY.x) * .31, tilt = (px.x - 96.) * mix(.024, .043, step(.5, uInside));
+  float ln = sy < uHandY.x + gap - tilt ? 0. : sy < uHandY.y + gap - tilt ? 1. : 2.;
   float x0 = ln > 1.5 ? uHandL.z - 10. : 52., x1 = ln < .5 ? uHandL.x : ln < 1.5 ? uHandL.y : uHandL.w, e = mix(x0 - 6., x1 + 6., clamp(uHand - ln, 0., 1.));
-  return 1. - smoothstep(e - 5., e, px.x); }
+  return max(step(2.999, uHand), 1. - smoothstep(e - 5., e, px.x)); }
 vec3 ticketFront(vec2 uv, vec2 px) {
   vec3 pl = texture2D(tTicket, uv).rgb, p2 = texture2D(tTicket2, uv).rgb;
   float fib = texture2D(tFiber, px / 230. + .11).r - .5, cl = vn(px / 60. + 4.) - .5;
