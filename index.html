@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Письмо</title>
+<meta name="theme-color" content="#14110d">
+<meta name="robots" content="noindex">
+<meta name="description" content="От команды «Треск». Порвите обёртку пальцем.">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="ru_RU">
+<meta property="og:url" content="https://matbcontrol.github.io/pismo/">
+<meta property="og:title" content="Вам письмо">
+<meta property="og:description" content="От команды «Треск». Порвите обёртку пальцем.">
+<meta property="og:image" content="https://matbcontrol.github.io/pismo/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alumni+Sans:wght@900&family=IBM+Plex+Mono:wght@500;600&family=Caveat:wght@600&family=DotGothic16&display=swap" rel="stylesheet">
+<style>
+  :root { --bg: #14110d; --fg: #f3eee2; --acc: #e2412a; --u: 1px; }
+  html, body { margin: 0; height: 100%; background: var(--bg); overflow: hidden; overscroll-behavior: none; }
+  #stage { position: absolute; left: 50%; top: 50%; width: 432px; height: 768px; transform: translate(-50%, -50%) scale(var(--k, 1)); }
+  #scene { width: 432px; height: 768px; display: block; touch-action: none; -webkit-user-select: none; user-select: none; }
+  #finger { position: absolute; left: 0; top: 0; width: 50px; height: 50px; margin: -25px 0 0 -25px; border-radius: 50%; pointer-events: none; opacity: 0;
+    background: rgba(20, 18, 28, .2); border: 2px solid rgba(255, 255, 255, .85); box-shadow: 0 1px 6px rgba(0, 0, 0, .25); box-sizing: border-box; }
+  /* Чек картинкой там, где браузер не умеет ни скачать файл, ни открыть лист «Поделиться»: картинка на поле компании, сохраняется долгим нажатием. */
+  #keep { position: fixed; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: var(--bg); }
+  #keep img { max-width: 86vw; max-height: 80vh; max-height: 80svh; box-shadow: 0 6px 30px rgba(0, 0, 0, .35); }
+  #keep p { margin: 0; padding: 0 22px; color: var(--fg); font: 500 14px/1.45 "IBM Plex Mono", monospace; text-align: center; max-width: 34ch; }
+  /* Широкое окно компьютера: письмо стоит справа, слева крупно, кому оно. Размеры идут от окна (--u), поэтому масштаб браузера вид не меняет.
+     На телефоне и в узком окне этого блока нет, письмо занимает весь экран. */
+  #side { display: none; position: absolute; left: calc(44 * var(--u)); top: 50%; transform: translateY(-50%); color: var(--acc); pointer-events: none; }
+  #side h1 { margin: 0; font: 900 calc(240 * var(--u))/0.84 "Alumni Sans", "Arial Narrow", sans-serif; text-transform: uppercase; letter-spacing: -0.02em; white-space: nowrap; }
+  #side h1 span { display: block; } #side h1 .n { color: var(--fg); }
+  #side p { margin: calc(34 * var(--u)) 0 0; color: var(--fg); font: 500 max(15px, calc(24 * var(--u)))/1.5 "IBM Plex Mono", monospace; max-width: 36ch; }
+  @media (min-aspect-ratio: 13/10) {
+    :root { --u: max(0.6px, min(100vw / 1440, 100svh / 820)); }
+    #stage { left: 72%; }
+    #side { display: block; }
+  }
+</style>
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js" } }</script>
+</head>
+<body>
+<div id="side"><h1 id="sideH"></h1><p id="sideP"></p></div>
+<div id="stage"><canvas id="scene"></canvas><div id="finger"></div></div>
+<script type="module" src="main.js"></script>
+</body>
+</html>

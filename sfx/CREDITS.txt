@@ -1,0 +1,54 @@
+Sounds of the New Year card. Every source is a Creative Commons 0 (public domain) recording from freesound.org, made with a microphone by the person credited below.
+No synthesized or AI-generated audio. The banks in this folder are short slices of these recordings: high-passed, faded and level-matched.
+
+sint3.wav by escortmarius
+  https://freesound.org/people/escortmarius/sounds/141130/
+  used in: rip
+sint2.wav by escortmarius
+  https://freesound.org/people/escortmarius/sounds/141131/
+  used in: tear, rip
+013_paper_crumple.wav by Lau7
+  https://freesound.org/people/Lau7/sounds/153342/
+  used in: crinkle
+puzzle box lid.wav by esperar
+  https://freesound.org/people/esperar/sounds/170773/
+  used in: liddown
+Impact and friction on a soft sheet by LPA134
+  https://freesound.org/people/LPA134/sounds/196985/
+  used in: land
+Tearing paper by vladnegrila
+  https://freesound.org/people/vladnegrila/sounds/339969/
+  used in: tear
+Fast Paper Rip by sgrowe
+  https://freesound.org/people/sgrowe/sounds/342541/
+  used in: rip
+Wrapping Paper Tears and Manipulations by timothyd4y
+  https://freesound.org/people/timothyd4y/sounds/495052/
+  used in: rip
+FOLEY_Small box lid closing_1.wav by WilliamJMeyer
+  https://freesound.org/people/WilliamJMeyer/sounds/495914/
+  used in: liddown
+Playing cards on a wooden table by snuq
+  https://freesound.org/people/snuq/sounds/564128/
+  used in: tap
+Paper Rip 4 by omgitsjo
+  https://freesound.org/people/omgitsjo/sounds/710163/
+  used in: rip
+thin paper rip by matucha
+  https://freesound.org/people/matucha/sounds/723881/
+  used in: tear
+PaperCrumpling 2 by lematt
+  https://freesound.org/people/lematt/sounds/725251/
+  used in: crinkle
+Dare2025-10 - Freesound's business card rubbing by Sadiquecat
+  https://freesound.org/people/Sadiquecat/sounds/812963/
+  used in: cardslide
+epson receipt printer7 by azumarill
+  https://freesound.org/people/azumarill/sounds/345057/
+  used in: printer1
+Epson TM-H6000II slip printer 0 by tt_runscript
+  https://freesound.org/people/tt_runscript/sounds/818993/
+  used in: printer2
+Receipt Printer 01.wav by thepodcastdoctor
+  https://freesound.org/people/thepodcastdoctor/sounds/476011/
+  used in: printer3
